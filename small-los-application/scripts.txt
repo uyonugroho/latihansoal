@@ -1,0 +1,6 @@
+docker build -t small-los-application/los-data-service:1.0.0 .
+docker build -t small-los-application/los-service:1.0.0 .
+
+
+docker run --net small-los-application -p 8081:8081 --name los-data-service -d small-los-application/los-data-service:1.0.0
+docker run --net small-los-application -p 8080:8080 --name los-service -d small-los-application/customer-service:1.0.0

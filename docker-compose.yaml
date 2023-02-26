@@ -1,0 +1,67 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:6.2.7
+    restart: unless-stopped
+    ports:
+      - 2181:2181
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    healthcheck:
+      test: "echo stat | nc localhost $$ZOOKEEPER_CLIENT_PORT"
+
+  kafka:
+    image: confluentinc/cp-kafka:6.2.7
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "9092" ]
+      
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    ports:
+      - 8002:8080
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    user: root
+    ports:
+      - 8001:8001
+volumes:
+  postgres_data:
+    name: suryo_postgres_data
+    
+networks:
+  default:
+    name: suryo_network
